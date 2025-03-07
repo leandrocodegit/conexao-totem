@@ -1,0 +1,21 @@
+version: '3.3'
+
+services:
+  app-conexao:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: conexao:1.0.0
+    ports:
+      - "8084:8084"
+    environment:
+      - JAVA_OPTS=-Dspring.profiles.active=prod
+    container_name: conexao
+    networks:
+      - backend-toten_totem-network
+
+networks:
+  backend-toten_totem-network:
+    external: true
+
+
