@@ -54,6 +54,7 @@ public class DispositivoService {
             conexaoRepository.saveAll(conexoes);
 
             logRepository.save(Log.builder()
+                    .key(UUID.randomUUID())
                     .data(LocalDateTime.now())
                     .usuario("Enviado pelo sistema")
                     .mensagem("Dispositivos offline")
@@ -145,6 +146,7 @@ public class DispositivoService {
                     clientes.put(dispositivo.getCliente().getId().toString(), dispositivo.getCliente().getId());
                 if (gerarLog && !Thread.currentThread().isInterrupted()) {
                     logRepository.save(Log.builder()
+                            .key(UUID.randomUUID())
                             .cliente(dispositivo.getCliente())
                             .data(LocalDateTime.now())
                             .usuario("Enviado pelo dispositivo")
