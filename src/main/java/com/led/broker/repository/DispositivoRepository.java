@@ -54,4 +54,6 @@ public interface DispositivoRepository extends MongoRepository<Dispositivo, Stri
     @Query(value = "{ 'conexao': {'ultimaAtualizacao' : { $lt: ?0 }}, 'conexao': {'status' : 'Online'}, 'ativo' : true }")
     List<Dispositivo> findAllAtivosComUltimaAtualizacaoAntesQueEstavaoOnline(Date dataLimite);
 
+
+
 }

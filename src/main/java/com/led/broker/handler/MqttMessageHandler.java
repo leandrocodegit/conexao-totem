@@ -3,8 +3,11 @@ package com.led.broker.handler;
 import com.google.gson.Gson;
 import com.led.broker.model.Mensagem;
 import static com.led.broker.model.constantes.Comando.*;
+
+import com.led.broker.model.constantes.Comando;
 import com.led.broker.model.constantes.Topico;
 import com.led.broker.service.DispositivoService;
+import com.led.broker.util.LoRaDecrypt;
 import com.led.broker.util.MensagemFormater;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -28,6 +31,7 @@ public class MqttMessageHandler implements MessageHandler {
     private static final Logger logger = LoggerFactory.getLogger(MqttMessageHandler.class);
 
     private final DispositivoService dispositivoService;
+    private final LoRaDecrypt loRaDecrypt;
     private final ExecutorService executorService = Executors.newFixedThreadPool(1);
     private final ConcurrentHashMap<Long, Future<?>> tasks = new ConcurrentHashMap<>();
 
@@ -37,10 +41,17 @@ public class MqttMessageHandler implements MessageHandler {
     public void handleMessage(Message<?> message) {
         UUID clientId = (UUID) message.getHeaders().get("id");
         String topico = (String) message.getHeaders().get("mqtt_receivedTopic");
-
+        String mensagem = message.getPayload().toString();
         try {
-            Mensagem payload = MensagemFormater.formatarMensagem(message.getPayload().toString());
-            if (Stream.of(ONLINE, CONCLUIDO, CONFIGURACAO, OCORRENCIA, BOTAO_ACIONADO, LORA_PARAMETROS).anyMatch(cmd -> cmd.equals(payload.getComando()))) {
+            if(topico.equals(Topico.KORE)){
+               var payloadLora = new Gson().fromJson(mensagem, Mensagem.class);
+               mensagem = loRaDecrypt.decript(payloadLora);
+            }else{
+                logger.error("Mensagem padrão");
+            }
+            Mensagem payload = MensagemFormater.formatarMensagem(mensagem);
+            Comando comando = payload.getComando();
+            if (Stream.of(ONLINE, CONCLUIDO, CONFIGURACAO, OCORRENCIA, BOTAO_ACIONADO, LORA_PARAMETROS, SINCRONIZAR).anyMatch(cmd -> cmd.equals(comando))) {
                 payload.setBrockerId(clientId.toString());
             var sincronizar = topico.equals(Topico.SINCRONIZAR);
                processarDispositivo(payload.getId(), payload, sincronizar);
@@ -67,6 +78,7 @@ public class MqttMessageHandler implements MessageHandler {
 
         if (existingTask != null && !existingTask.isDone()) {
             existingTask.cancel(true);
+            logger.error("Tarefa cancelada");
         }
     }
 

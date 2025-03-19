@@ -33,9 +33,12 @@ public class Cor {
     private List<Parametro> parametros;
 
     public static Cor padrao(){
+        return padrao(null);
+    }
+    public static Cor padrao(String nome){
         return Cor.builder()
                 .id(UUID.randomUUID())
-                .nome("Padrão")
+                .nome(nome == null ? "Padrão" : nome)
                 .quantidadePinos(0)
                 .rapida(false)
                 .time(0)

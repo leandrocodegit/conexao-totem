@@ -20,12 +20,10 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.*;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Stream;
 
 @Service
@@ -45,6 +43,7 @@ public class DispositivoService {
     private final MqttService mqttService;
     private final CorRepository corRepository;
     private final SequenceGeneratorService sequenceGeneratorService;
+    public static Map<String, UUID> clientes = new HashMap<>();
 
 
     public void salvarDispositivoComoOffline(List<Conexao> conexoes) {
@@ -68,8 +67,12 @@ public class DispositivoService {
         }
     }
 
+
     public void atualizarDispositivo(Mensagem mensagem) {
-        Optional<Dispositivo> dispositivoOptional = dispositivoRepository.findByIdAndAtivo(mensagem.getId(), true);
+        Optional<Dispositivo> dispositivoOptional = Optional.empty();
+        if (!Thread.currentThread().isInterrupted()) {
+            dispositivoOptional = dispositivoRepository.findByIdAndAtivo(mensagem.getId(), true);
+        }
         logger.warn("Comando recebido: " + mensagem.getComando());
         if (dispositivoOptional.isPresent() && mensagem.getId() > 1000) {
             Dispositivo dispositivo = dispositivoOptional.get();
@@ -82,7 +85,7 @@ public class DispositivoService {
                 dispositivo.getConexao().setDevEui(conexaoFormater.getDevEui());
                 dispositivo.getConexao().setTxPower(conexaoFormater.getTxPower() == null ? 0 : conexaoFormater.getTxPower());
                 dispositivo.getConexao().setDataRate(conexaoFormater.getDataRate() == null ? 0 : conexaoFormater.getDataRate());
-                dispositivo.getConexao().setAdr(conexaoFormater.getAdr() == null ? 0 : conexaoFormater.getAdr());
+                dispositivo.getConexao().setAdr(conexaoFormater.getAdr());
                 dispositivo.getConexao().setSnr(conexaoFormater.getSnr() == null ? 0 : conexaoFormater.getSnr());
                 dispositivo.getConexao().setRssi(conexaoFormater.getRssi() == null ? 0 : conexaoFormater.getRssi());
 
@@ -96,7 +99,11 @@ public class DispositivoService {
                     dispositivo.getConexao().setAppKey(conexaoFormater.getAppKey());
                 }
 
-                conexaoRepository.save(dispositivo.getConexao());
+                if (dispositivo.getConexao().getTempoAtividade() == null)
+                    dispositivo.getConexao().setTempoAtividade(3);
+                if (!Thread.currentThread().isInterrupted()) {
+                    conexaoRepository.save(dispositivo.getConexao());
+                }
             } else {
 
 
@@ -109,28 +116,34 @@ public class DispositivoService {
                             .status(Online)
                             .autoJoin(false).build());
                 }
-                if(dispositivo.getCor() == null){
-                    var cor = corRepository.save(Cor.padrao());
+                if (dispositivo.getCor() == null && !Thread.currentThread().isInterrupted()) {
+                    var cor = corRepository.save(corRepository.findById(String.valueOf(mensagem.getId())).orElse(Cor.padrao(String.valueOf(mensagem.getId()))));
                     dispositivo.setCor(cor);
                 }
+
+                if (dispositivo.getCor().isExclusiva())
+                    dispositivo.getCor().setNome(String.valueOf(dispositivo.getId()));
                 dispositivo.getConexao().setUltimaAtualizacao(LocalDateTime.now().atZone(ZoneOffset.UTC).toLocalDateTime());
                 dispositivo.getConexao().setStatus(Online);
                 dispositivo.getConexao().setStatusMCU(mensagem.getStatusMCU());
                 dispositivo.getConexao().setTipoConexao(mensagem.getTipoConexao());
-                conexaoRepository.save(dispositivo.getConexao());
+                if (dispositivo.getConexao().getTempoAtividade() == null)
+                    dispositivo.getConexao().setTempoAtividade(3);
+                if (!Thread.currentThread().isInterrupted()) {
+                    conexaoRepository.save(dispositivo.getConexao());
+                }
                 logger.warn("Atualizado conexão:  " + dispositivo.getId() + " : " + dispositivo.getConexao().getStatus());
                 dispositivo.setComando(mensagem.getComando());
                 dispositivo.setVersao(mensagem.getVersao());
                 dispositivo.setBrokerId(mensagem.getBrockerId());
-
-                dispositivoRepository.save(dispositivo);
+                if (!Thread.currentThread().isInterrupted()) {
+                    dispositivoRepository.save(dispositivo);
+                }
                 logger.warn("Atualizado dispositivo:  " + dispositivo.getId());
 
-                if (gerarLog || atualizarDashboard) {
-                    // dashboardService.atualizarDashboard("");
-                    mqttService.sendRetainedMessage(TOPICO_DASHBOARD, "Atualizando dashboard");
-                }
-                if (gerarLog) {
+                if (gerarLog || atualizarDashboard && dispositivo.getCliente() != null)
+                    clientes.put(dispositivo.getCliente().getId().toString(), dispositivo.getCliente().getId());
+                if (gerarLog && !Thread.currentThread().isInterrupted()) {
                     logRepository.save(Log.builder()
                             .data(LocalDateTime.now())
                             .usuario("Enviado pelo dispositivo")
@@ -149,8 +162,10 @@ public class DispositivoService {
                     else if (mensagem.getComando().equals(BOTAO_ACIONADO)) {
                         dispositivo.getOperacao().setModoOperacao(BOTAO);
                     }
-                    operacaoRepository.save(dispositivo.getOperacao());
-                    comandoService.temporizarInterno(dispositivo.getOperacao().getCorVibracao().getId(), dispositivo.getId());
+                    if (!Thread.currentThread().isInterrupted()) {
+                        operacaoRepository.save(dispositivo.getOperacao());
+                        comandoService.temporizarInterno(dispositivo.getOperacao().getCorVibracao().getId(), dispositivo.getId());
+                    }
                 } else {
                     sincronizar(dispositivo, mensagem);
                 }
@@ -160,7 +175,7 @@ public class DispositivoService {
 
                 if (mensagem.getId() > 1000) {
 
-                    var cor = corRepository.save(Cor.padrao());
+                    var cor = corRepository.save(corRepository.findById(String.valueOf(mensagem.getId())).orElse(Cor.padrao(String.valueOf(mensagem.getId()))));
                     Dispositivo dispositivo = dispositivoRepository.save(
                             Dispositivo.builder()
                                     .conexao(Conexao.builder()
@@ -169,6 +184,7 @@ public class DispositivoService {
                                             .ultimaAtualizacao(LocalDateTime.now())
                                             .statusMCU(mensagem.getStatusMCU())
                                             .tipoConexao(mensagem.getTipoConexao())
+                                            .fracionarMensagem(false)
                                             .autoJoin(false)
                                             .build())
                                     .id(mensagem.getId())
@@ -176,7 +192,6 @@ public class DispositivoService {
                                     .versao(mensagem.getVersao())
                                     .ignorarAgenda(false)
                                     .sensibilidadeVibracao(0.0F)
-                                    .tempoAtividade(1)
                                     .cor(cor)
                                     .operacao(Operacao.builder()
                                             .id(String.valueOf(mensagem.getId()))
@@ -191,8 +206,6 @@ public class DispositivoService {
                     logger.warn("Novo dispositivo adicionado " + dispositivo.getId());
                     conexaoRepository.save(dispositivo.getConexao());
                     operacaoRepository.save(dispositivo.getOperacao());
-                    //dashboardService.atualizarDashboard("");
-                    mqttService.sendRetainedMessage(TOPICO_DASHBOARD, "Atualizando dashboard");
                 } else {
                     var id = sequenceGeneratorService.getNextSequence("deviceId");
                     comandoService.sincronizarId(id, mensagem.getId());
@@ -215,8 +228,7 @@ public class DispositivoService {
         } else if (Stream.of(CONCLUIDO).anyMatch(cmd -> cmd.equals(mensagem.getComando()))) {
             comandoService.sincronizar(dispositivo.getId());
             logger.warn("Tarefa de configuração executada");
-        } else if (mensagem.getComando().equals(ONLINE)) {
-
+        } else if (mensagem.getComando().equals(ONLINE) || mensagem.getComando().equals(CONFIGURACAO)) {
             var efeitoRemoto = mensagem.getEfeito().stream().filter(efeito -> !efeito.equals(Efeito.SEM_EFEITO)).toList();
             if (cor.getParametros() != null) {
                 var efeitosDispositivo = cor.getParametros().stream().map(Parametro::getEfeito).toList();

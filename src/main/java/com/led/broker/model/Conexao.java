@@ -37,11 +37,22 @@ public class Conexao {
     private String nwkSKey;
     private String appSKey;
     private String devAddr;
+    private String loraSecret;
     private Integer txPower;
     private Integer dataRate;
-    private Integer adr;
-    private Integer snr;
+    private Boolean adr = Boolean.FALSE;
+    private Double snr;
     private Integer rssi;
     private Boolean autoJoin;
+    private Integer tempoAtividade;
+    private Boolean fracionarMensagem = Boolean.FALSE;
+    private String latitude;
+    private String longitude;
 
+
+    public Integer getTempoAtividade() {
+        if(tempoAtividade == null)
+            return 2;
+        return tempoAtividade;
+    }
 }

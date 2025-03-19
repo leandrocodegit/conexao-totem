@@ -9,10 +9,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("conexao")
@@ -25,10 +24,10 @@ public class ConexaoController {
 
     @GetMapping
     //@CrossOrigin({"http://totem:8081"})
-    public ResponseEntity<String> atualizarDashboar() {
+    public ResponseEntity<String> atualizarDashboar(@RequestHeader UUID clienteId) {
         logger.warn("Atualizando dashboard");
-        dashboardService.atualizarDashboard("");
-        mqttService.sendRetainedMessage(Topico.TOPICO_DASHBOARD, "Atualizando dashboard");
+        dashboardService.atualizarDashboard(clienteId);
+        mqttService.sendRetainedMessage(Topico.TOPICO_DASHBOARD + "/" + clienteId.toString(), "Atualizando dashboard ");
         logger.warn("Atualizado com sucesso");
         return ResponseEntity.ok("atualizado com sucesso");
     }

@@ -23,7 +23,7 @@ public class CorService {
 
     private final CorRepository corRepository;
 
-    public Optional<Cor> buscaCor(UUID id){
+    public Optional<Cor> buscaCor(String id){
         return corRepository.findById(id);
     }
 

@@ -69,9 +69,7 @@ public class MensagemFormater {
                 .devAddr(mensagemHexa.substring(inicio += 32, inicio + 8))
                 .txPower(hexToInt(mensagemHexa.substring(inicio += 8, inicio + 2)))
                 .dataRate(hexToInt(mensagemHexa.substring(inicio += 2, inicio + 2)))
-                .adr(hexToInt(mensagemHexa.substring(inicio += 2, inicio + 2)))
-                .snr(hexToInt(mensagemHexa.substring(inicio += 2, inicio + 2)))
-                .rssi(hexToInt(mensagemHexa.substring(inicio += 2, inicio + 2)))
+                .adr(hexToInt(mensagemHexa.substring(inicio += 2, inicio + 2)) == 1)
                 .build();
 
         return Conexao.builder()

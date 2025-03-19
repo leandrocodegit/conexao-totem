@@ -8,10 +8,12 @@ import org.springframework.data.mongodb.repository.Query;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 public interface ConexaoRepository extends MongoRepository<Conexao, String> {
 
     @Query("{ 'ultimaAtualizacao' : { $lt: ?0 }, 'conexao.status' : 'Online', 'ativo' : true }")
     List<Conexao> findAllAtivosComUltimaAtualizacaoAntesQueEstavaoOnline(LocalDateTime dataLimite);
 
+    Optional<Conexao> findByDevEui(String devEUI);
 }

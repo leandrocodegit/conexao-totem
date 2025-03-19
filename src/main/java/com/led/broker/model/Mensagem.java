@@ -25,5 +25,8 @@ public class Mensagem {
     private List<Efeito> efeito;
     private String brockerId;
     private String mensagem;
+    private String type;
+    private ParamsLora params;
+    private Meta meta;
 
 }

@@ -1,13 +1,8 @@
 package com.led.broker.config;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.led.broker.controller.response.DashboardResponse;
-import com.led.broker.handler.MqttMessageHandler;
 import com.led.broker.model.Conexao;
-import com.led.broker.model.Dispositivo;
-import com.led.broker.model.Log;
-import com.led.broker.model.constantes.Comando;
+import com.led.broker.model.constantes.StatusConexao;
+import com.led.broker.model.constantes.TipoConexao;
 import com.led.broker.model.constantes.Topico;
 import com.led.broker.repository.LogRepository;
 import com.led.broker.service.DashboardService;
@@ -20,8 +15,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.*;
+
+import static com.led.broker.model.constantes.Topico.TOPICO_DASHBOARD;
 
 @Configuration
 @EnableScheduling
@@ -32,27 +30,38 @@ public class ScheduleConfig {
     private final DispositivoService dispositivoService;
     private final LogRepository logRepository;
     private final DashboardService dashboardService;
-    private Boolean enviarDashBoard = false;
     private final MqttService mqttService;
     private List<Conexao> conexoes;
 
-    @Scheduled(fixedRate = 7 * 60 * 1000)
+    @Scheduled(fixedRate = 1 * 60 * 1000)
     public void checkarDipositivosOffline() {
 
         conexoes = dispositivoService.dispositivosQueFicaramOffilne();
-        if(!conexoes.isEmpty()){
+        if (!conexoes.isEmpty()) {
             logger.warn("Dispositivos offline: " + conexoes.size());
-            dispositivoService.salvarDispositivoComoOffline(conexoes);
-            enviarDashBoard = true;
+            var conexoesFiltro = conexoes.stream().filter(conexao -> {
+                LocalDateTime timeOut = conexao.getUltimaAtualizacao().plusMinutes(conexao.getTempoAtividade());
+                if (conexao.getTipoConexao().equals(TipoConexao.LORA))
+                    if (conexao.getStatus().equals(StatusConexao.Espera))
+                        timeOut = conexao.getUltimaAtualizacao().plusMinutes(30);
+                    else timeOut = conexao.getUltimaAtualizacao().plusMinutes(10);
+                return LocalDateTime.now().isAfter(timeOut);
+            }).toList();
+            dispositivoService.salvarDispositivoComoOffline(conexoesFiltro);
+            logger.warn("Dispositivos offline filtrados: " + conexoesFiltro.size());
         }
     }
 
-    @Scheduled(fixedRate = 8 * 60 * 1000)
+    @Scheduled(fixedRate = 2 * 60 * 1000)
     public void atualizacaoDashboard() {
-        if(Boolean.TRUE.equals(enviarDashBoard)){
-            dashboardService.atualizarDashboard("");
-            mqttService.sendRetainedMessage(Topico.TOPICO_DASHBOARD, "Atualizando dashboard");
-            enviarDashBoard = false;
+        if (!DispositivoService.clientes.isEmpty()) {
+            logger.info("Atualizando dashboard de clientes: " + DispositivoService.clientes.size());
+            var clientes = DispositivoService.clientes.values();
+            clientes.forEach(cliente -> {
+                var clienteId = DispositivoService.clientes.remove(cliente.toString());
+                dashboardService.atualizarDashboard(clienteId);
+                mqttService.sendRetainedMessage(TOPICO_DASHBOARD + "/" + clienteId, "Atualizando dashboard");
+            });
         }
     }
 }
