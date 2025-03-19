@@ -28,7 +28,6 @@ public class ScheduleConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(ScheduleConfig.class);
     private final DispositivoService dispositivoService;
-    private final LogRepository logRepository;
     private final DashboardService dashboardService;
     private final MqttService mqttService;
     private List<Conexao> conexoes;

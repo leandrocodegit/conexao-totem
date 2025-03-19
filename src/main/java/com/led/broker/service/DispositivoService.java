@@ -145,6 +145,7 @@ public class DispositivoService {
                     clientes.put(dispositivo.getCliente().getId().toString(), dispositivo.getCliente().getId());
                 if (gerarLog && !Thread.currentThread().isInterrupted()) {
                     logRepository.save(Log.builder()
+                            .cliente(dispositivo.getCliente())
                             .data(LocalDateTime.now())
                             .usuario("Enviado pelo dispositivo")
                             .mensagem("mensagem.getId()")
