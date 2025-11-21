@@ -77,7 +77,7 @@ public class MqttMessageHandler implements MessageHandler {
         }));
 
         if (existingTask != null && !existingTask.isDone()) {
-            existingTask.cancel(true);
+           // existingTask.cancel(true);
             logger.error("Tarefa cancelada");
         }
     }
