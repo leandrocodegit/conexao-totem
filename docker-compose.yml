@@ -8,6 +8,7 @@ services:
     image: conexao:1.0.0
     ports:
       - "8084:8084"
+      - "5012:5005"
     environment:
       - JAVA_OPTS=-Dspring.profiles.active=prod
     container_name: conexao

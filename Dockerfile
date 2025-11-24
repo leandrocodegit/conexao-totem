@@ -20,7 +20,8 @@ WORKDIR /app
 COPY --from=builder /app/target/conexao-1.0.0.jar /app/conexao-1.0.0.jar
 
 # Porta em que a aplicação irá rodar
-EXPOSE 8080
+ENV JAVA_TOOL_OPTIONS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+EXPOSE 8080 5012
 
 # Comando para executar a aplicação
 CMD ["java", "-Xms2g", "-Xmx4g", "-jar", "/app/conexao-1.0.0.jar"]
