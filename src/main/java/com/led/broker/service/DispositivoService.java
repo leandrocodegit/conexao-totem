@@ -262,7 +262,7 @@ public class DispositivoService {
 
         if (Boolean.FALSE.equals(dispositivo.isIgnorarAgenda()) && dispositivo.getOperacao().getModoOperacao().equals(AGENDA)) {
             Agenda agenda = dispositivo.getOperacao().getAgenda();
-            if (agenda != null && agenda.getCor() != null && agenda.isAtivo() && agenda.getDispositivos().contains(dispositivo.getId())) {
+            if (agenda != null && agenda.getCor() != null && agenda.isAtivo() && (agenda.getDispositivos().contains(dispositivo.getId()) || agenda.isTodos())) {
                 MonthDay inicio = MonthDay.from(agenda.getInicio());
                 MonthDay fim = MonthDay.from(agenda.getTermino());
 
