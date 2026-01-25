@@ -187,6 +187,7 @@ public class DispositivoService {
                                             .ultimaAtualizacao(LocalDateTime.now())
                                             .statusMCU(mensagem.getStatusMCU())
                                             .tipoConexao(mensagem.getTipoConexao())
+                                            .tempoAtividade(5)
                                             .fracionarMensagem(false)
                                             .autoJoin(false)
                                             .build())
