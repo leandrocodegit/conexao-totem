@@ -21,7 +21,10 @@ public enum Efeito {
     CONSTELACAO(14),
     GAME(15),
     FAIXA_3(16),
-    UPDATE(10);
+    NIVEL(17),
+    BATIMENTOS(18),
+    ALERTA(19),
+    UPDATE(100);
     public int codigo;
 
     Efeito(int codigo) {
