@@ -24,6 +24,7 @@ public enum Efeito {
     NIVEL(17),
     BATIMENTOS(18),
     ALERTA(19),
+    SCANNER(20),
     UPDATE(100);
     public int codigo;
 
